@@ -67,9 +67,12 @@ RUN wget https://github.com/pgvector/pgvector/archive/refs/tags/v${PGVECTOR_VERS
     echo "${PGVECTOR_SHA} pgvector.tar.gz" | sha256sum --check && \
     mkdir pgvector-src && cd pgvector-src && tar xvzf ../pgvector.tar.gz --strip-components=1 -C . && \
     make -j $(getconf _NPROCESSORS_ONLN) OPTFLAGS="" PG_CONFIG=${PGCONFIG} && \
-    make -j $(getconf _NPROCESSORS_ONLN) install OPTFLAGS="" PG_CONFIG=${PGCONFIG} && \
-    echo 'trusted = true' >> ${EXTENSION_DIR}/vector.control
+    make -j $(getconf _NPROCESSORS_ONLN) install OPTFLAGS="" PG_CONFIG=${PGCONFIG}
 
+RUN mkdir /out /out/lib /out/share /out/share/extension && \
+    cp ${LIB_DIR}/lib/vector* /out/lib/ && \
+    cp ${EXTENSION_DIR}/vector* /out/share/extension/ && \
+    echo 'trusted = true' >> /out/share/extension/vector.control
 
     
 #########################################################################################
@@ -78,20 +81,10 @@ RUN wget https://github.com/pgvector/pgvector/archive/refs/tags/v${PGVECTOR_VERS
 #
 #########################################################################################
 
-FROM postgres:${PG_MAJOR}-bullseye
+FROM bitnami/postgresql:${PG_MAJOR}-debian-11
 
 LABEL maintainer="Encore - https://encore.dev"
 ARG EXTENSION_DIR
 ARG LIB_DIR
 
-ENV POSTGIS_MAJOR 3
-ENV POSTGIS_VERSION 3.3.3+dfsg-1.pgdg110+1
-
-RUN apt update \
-    && apt install -y --no-install-recommends \
-        postgresql-$PG_MAJOR-postgis-$POSTGIS_MAJOR=$POSTGIS_VERSION \
-        postgresql-$PG_MAJOR-postgis-$POSTGIS_MAJOR-scripts=$POSTGIS_VERSION 
-
-RUN rm -rf /var/lib/apt/lists/*
-COPY --from=vector-ext ${EXTENSION_DIR}/ ${EXTENSION_DIR}/
-COPY --from=vector-ext ${LIB_DIR}/ ${LIB_DIR}/
+COPY --from=vector-ext /out/ /opt/bitnami/postgresql/
