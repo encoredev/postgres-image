@@ -88,12 +88,11 @@ ARG EXTENSION_DIR
 ARG LIB_DIR
 
 ENV POSTGIS_MAJOR 3
-ENV POSTGIS_VERSION 3.3.4+dfsg-1.pgdg110+1
 
 RUN apt update \
     && apt install -y --no-install-recommends \
-        postgresql-$PG_MAJOR-postgis-$POSTGIS_MAJOR=$POSTGIS_VERSION \
-        postgresql-$PG_MAJOR-postgis-$POSTGIS_MAJOR-scripts=$POSTGIS_VERSION 
+        postgresql-$PG_MAJOR-postgis-$POSTGIS_MAJOR \
+        postgresql-$PG_MAJOR-postgis-$POSTGIS_MAJOR-scripts
 
 COPY --from=vector-ext /out/lib/ ${LIB_DIR}/lib/
 COPY --from=vector-ext /out/share/extension/ ${EXTENSION_DIR}/
