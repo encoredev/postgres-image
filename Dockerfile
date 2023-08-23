@@ -97,3 +97,21 @@ RUN apt update \
 
 COPY --from=vector-ext /out/lib/ ${LIB_DIR}/lib/
 COPY --from=vector-ext /out/share/extension/ ${EXTENSION_DIR}/
+
+# Ensure extensions are trusted. Note: not all extensions
+RUN for ext in address_standardizer address_standardizer-3 address_standardizer_data_us \
+    address_standardizer_data_us-3 autoinc amcheck bloom btree_gin btree_gist citext \
+    cube dblink dict_int dict_xsyn earthdistance fuzzystrmatch hstore insert_username \
+    intagg intarray isn lo ltree moddatetime pageinspect pg_buffercache pgcrypto \
+    pg_freespacemap pg_prewarm pgrowlocks pg_stat_statements pgstattuple pg_trgm \
+    pg_visibility plpgsql postgis postgis-3 postgis_raster postgis_raster-3 postgis_sfcgal \
+    postgis_sfcgal-3 postgis_tiger_geocoder postgis_tiger_geocoder-3 postgis_topology \
+    postgis_topology-3 postgres_fdw refint seg sslinfo tablefunc tsm_system_rows \
+    tsm_system_time unaccent uuid-ossp vector; do \
+        if grep -q "trusted" "$EXTENSION_DIR/$ext.control"; then \
+            echo "INFO: $ext is already trusted"; \
+        else \
+            echo "INFO: $ext is not trusted, adding trusted = true to $ext.control"; \
+            echo "trusted = true" >> "$EXTENSION_DIR/$ext.control"; \
+        fi \
+    done
