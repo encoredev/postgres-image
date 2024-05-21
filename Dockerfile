@@ -40,7 +40,7 @@ ENV CXX=g++
 RUN apt update && \
     apt install -y git autoconf automake libtool build-essential bison flex libreadline-dev \
     zlib1g-dev libxml2-dev libcurl4-openssl-dev libossp-uuid-dev wget pkg-config libssl-dev \
-    libicu-dev libxslt1-dev liblz4-dev libzstd-dev zstd clang-11
+    libicu-dev libxslt1-dev liblz4-dev libzstd-dev zstd clang-13
 
 
 #########################################################################################
@@ -56,8 +56,8 @@ ARG LIB_DIR
 ARG INCLUDE_DIR
 ARG PGCONFIG
 
-ENV PGVECTOR_VERSION 0.4.4
-ENV PGVECTOR_SHA 1cb70a63f8928e396474796c22a20be9f7285a8a013009deb8152445b61b72e6
+ENV PGVECTOR_VERSION 0.7.0
+ENV PGVECTOR_SHA 1b5503a35c265408b6eb282621c5e1e75f7801afc04eecb950796cfee2e3d1d8
 
 COPY --from=pg-build ${EXTENSION_DIR}/ ${EXTENSION_DIR}/
 COPY --from=pg-build ${LIB_DIR}/ ${LIB_DIR}/
