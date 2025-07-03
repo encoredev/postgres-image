@@ -1,6 +1,6 @@
 # This file is inspired by github.com/neondatabase/neon's docker file.
 
-ARG PG_MAJOR=15
+ARG PG_MAJOR=17
 ARG EXTENSION_DIR=/usr/share/postgresql/${PG_MAJOR}/extension
 ARG INCLUDE_DIR=/usr/include/postgresql/${PG_MAJOR}
 ARG LIB_DIR=/usr/lib/postgresql/${PG_MAJOR}
@@ -17,7 +17,7 @@ ARG PGCONFIG=${BIN_DIR}/pg_config
 FROM postgres:${PG_MAJOR}-bullseye AS pg-build
 
 RUN apt update && \
-    apt install -y postgresql-server-dev-$PG_MAJOR 
+    apt install -y postgresql-server-dev-$PG_MAJOR
 
 
 #########################################################################################
@@ -40,7 +40,7 @@ ENV CXX=g++
 RUN apt update && \
     apt install -y git autoconf automake libtool build-essential bison flex libreadline-dev \
     zlib1g-dev libxml2-dev libcurl4-openssl-dev libossp-uuid-dev wget pkg-config libssl-dev \
-    libicu-dev libxslt1-dev liblz4-dev libzstd-dev zstd clang-13
+    libicu-dev libxslt1-dev liblz4-dev libzstd-dev zstd clang-16
 
 
 #########################################################################################
@@ -56,8 +56,8 @@ ARG LIB_DIR
 ARG INCLUDE_DIR
 ARG PGCONFIG
 
-ENV PGVECTOR_VERSION 0.7.0
-ENV PGVECTOR_SHA 1b5503a35c265408b6eb282621c5e1e75f7801afc04eecb950796cfee2e3d1d8
+ENV PGVECTOR_VERSION=0.7.0
+ENV PGVECTOR_SHA=1b5503a35c265408b6eb282621c5e1e75f7801afc04eecb950796cfee2e3d1d8
 
 COPY --from=pg-build ${EXTENSION_DIR}/ ${EXTENSION_DIR}/
 COPY --from=pg-build ${LIB_DIR}/ ${LIB_DIR}/
@@ -74,7 +74,7 @@ RUN mkdir /out /out/lib /out/share /out/share/extension && \
     cp ${EXTENSION_DIR}/vector* /out/share/extension/ && \
     echo 'trusted = true' >> /out/share/extension/vector.control
 
-    
+
 #########################################################################################
 #
 # Final image
@@ -87,7 +87,7 @@ LABEL maintainer="Encore - https://encore.dev"
 ARG EXTENSION_DIR
 ARG LIB_DIR
 
-ENV POSTGIS_MAJOR 3
+ENV POSTGIS_MAJOR=3
 
 RUN apt update \
     && apt install -y --no-install-recommends \
