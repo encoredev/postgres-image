@@ -5,7 +5,7 @@
 
 # Postgres image for Encore
 
-This is the Postgres docker image used by Encore for local development. It's based on Postgres 15 and includes
+This is the Postgres docker image used by Encore for local development. It's based on Postgres 17 and includes
 additional commonly used extensions.
 
 ## Extensions
