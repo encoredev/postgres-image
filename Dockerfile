@@ -1,6 +1,6 @@
 # This file is inspired by github.com/neondatabase/neon's docker file.
 
-ARG PG_MAJOR=15
+ARG PG_MAJOR=18
 ARG EXTENSION_DIR=/usr/share/postgresql/${PG_MAJOR}/extension
 ARG INCLUDE_DIR=/usr/include/postgresql/${PG_MAJOR}
 ARG LIB_DIR=/usr/lib/postgresql/${PG_MAJOR}
@@ -14,10 +14,10 @@ ARG PGCONFIG=${BIN_DIR}/pg_config
 #
 #########################################################################################
 
-FROM postgres:${PG_MAJOR}-bullseye AS pg-build
+FROM postgres:${PG_MAJOR}-trixie AS pg-build
 
 RUN apt update && \
-    apt install -y postgresql-server-dev-$PG_MAJOR 
+    apt install -y postgresql-server-dev-$PG_MAJOR
 
 
 #########################################################################################
@@ -26,7 +26,7 @@ RUN apt update && \
 # Used to copy postgres header files from, without needing postgres installed
 #
 #########################################################################################
-FROM debian:bullseye-slim AS build-deps
+FROM debian:trixie-slim AS build-deps
 
 ARG EXTENSION_DIR
 ARG LIB_DIR
@@ -40,7 +40,7 @@ ENV CXX=g++
 RUN apt update && \
     apt install -y git autoconf automake libtool build-essential bison flex libreadline-dev \
     zlib1g-dev libxml2-dev libcurl4-openssl-dev libossp-uuid-dev wget pkg-config libssl-dev \
-    libicu-dev libxslt1-dev liblz4-dev libzstd-dev zstd clang-13
+    libicu-dev libxslt1-dev liblz4-dev libzstd-dev zstd clang-19
 
 
 #########################################################################################
@@ -56,8 +56,8 @@ ARG LIB_DIR
 ARG INCLUDE_DIR
 ARG PGCONFIG
 
-ENV PGVECTOR_VERSION 0.7.0
-ENV PGVECTOR_SHA 1b5503a35c265408b6eb282621c5e1e75f7801afc04eecb950796cfee2e3d1d8
+ENV PGVECTOR_VERSION=0.8.2
+ENV PGVECTOR_SHA=69f4019389af05dc1c9548deb8628e62878e6e207c03907f2b8af2016472cdaa
 
 COPY --from=pg-build ${EXTENSION_DIR}/ ${EXTENSION_DIR}/
 COPY --from=pg-build ${LIB_DIR}/ ${LIB_DIR}/
@@ -74,20 +74,20 @@ RUN mkdir /out /out/lib /out/share /out/share/extension && \
     cp ${EXTENSION_DIR}/vector* /out/share/extension/ && \
     echo 'trusted = true' >> /out/share/extension/vector.control
 
-    
+
 #########################################################################################
 #
 # Final image
 #
 #########################################################################################
 
-FROM postgres:${PG_MAJOR}-bullseye
+FROM postgres:${PG_MAJOR}-trixie
 
 LABEL maintainer="Encore - https://encore.dev"
 ARG EXTENSION_DIR
 ARG LIB_DIR
 
-ENV POSTGIS_MAJOR 3
+ENV POSTGIS_MAJOR=3
 
 RUN apt update \
     && apt install -y --no-install-recommends \
@@ -114,3 +114,30 @@ RUN for ext in address_standardizer address_standardizer-3 address_standardizer_
             echo "trusted = true" >> "$EXTENSION_DIR/$ext.control"; \
         fi \
     done
+
+# Raise max_connections on first init. initdb's -c writes the setting into
+# the generated postgresql.conf; editing postgresql.conf.sample alone is
+# not enough because initdb recomputes max_connections from kernel limits.
+ENV POSTGRES_INITDB_ARGS="-c max_connections=1000"
+
+# Install legacy PostgreSQL server binaries plus matching extension
+# libraries (postgis, pgvector) so the OLD cluster can load extensions
+# during pg_upgrade's schema dump (opt-in via AUTO_PG_UPGRADE=1). Override
+# at build time with --build-arg LEGACY_PG_VERSIONS="15 16 17" to support more.
+ARG LEGACY_PG_VERSIONS="15"
+RUN mkdir -p /etc/postgresql-common && \
+    echo 'create_main_cluster = false' > /etc/postgresql-common/createcluster.conf && \
+    apt update && \
+    for v in $LEGACY_PG_VERSIONS; do \
+        apt install -y --no-install-recommends \
+            postgresql-$v \
+            postgresql-$v-postgis-$POSTGIS_MAJOR \
+            postgresql-$v-pgvector; \
+    done && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY scripts/auto-upgrade-entrypoint.sh scripts/pg-auto-upgrade.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/auto-upgrade-entrypoint.sh /usr/local/bin/pg-auto-upgrade.sh
+
+ENTRYPOINT ["auto-upgrade-entrypoint.sh"]
+CMD ["postgres"]
